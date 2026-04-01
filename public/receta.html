@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarjeta de Receta</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Nunito:wght@400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #e8e0d5;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .controls {
+            max-width: 700px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        .btn-voice {
+            background-color: #6b8e4e;
+            color: white;
+        }
+
+        .btn-voice:hover {
+            background-color: #5a7d3d;
+        }
+
+        .btn-voice.recording {
+            background-color: #c94c4c;
+            animation: pulse 1s infinite;
+        }
+
+        .btn-download {
+            background-color: #e9b44c;
+            color: #333;
+        }
+
+        .btn-download:hover {
+            background-color: #d9a43c;
+        }
+
+        .btn-clear {
+            background-color: #888;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background-color: #777;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .download-options {
+            display: none;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .download-options.active {
+            display: flex;
+        }
+
+        .download-option-btn {
+            padding: 8px 16px;
+            border: 2px solid #e9b44c;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: 'Nunito', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .download-option-btn:hover {
+            background: #e9b44c;
+            color: white;
+        }
+
+        .voice-status {
+            max-width: 700px;
+            margin: 0 auto 15px auto;
+            text-align: center;
+            display: none;
+        }
+
+        .voice-status.active {
+            display: block;
+        }
+
+        .voice-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #c94c4c;
+            font-size: 14px;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .voice-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #c94c4c;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .active-field-info {
+            font-size: 13px;
+            color: #555;
+            background: #f5f0e8;
+            padding: 6px 12px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        /* Recipe Card */
+        .recipe-card {
+            max-width: 700px;
+            margin: 0 auto;
+            background-color: #faf8f3;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header with flowers */
+        .header-banner {
+            background-color: #6b8e4e;
+            height: 100px;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .flowers-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .flower-group {
+            display: flex;
+            gap: 5px;
+            align-items: flex-end;
+        }
+
+        .flower {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .flower-head {
+            width: 24px;
+            height: 24px;
+            position: relative;
+        }
+
+        .petal {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .petal:nth-child(1) {
+            top: 0;
+            left: 7px;
+        }
+
+        .petal:nth-child(2) {
+            top: 7px;
+            right: 0;
+        }
+
+        .petal:nth-child(3) {
+            bottom: 0;
+            left: 7px;
+        }
+
+        .petal:nth-child(4) {
+            top: 7px;
+            left: 0;
+        }
+
+        .petal:nth-child(5) {
+            top: 3px;
+            left: 3px;
+        }
+
+        .petal:nth-child(6) {
+            top: 3px;
+            right: 3px;
+        }
+
+        .petal:nth-child(7) {
+            bottom: 3px;
+            left: 3px;
+        }
+
+        .petal:nth-child(8) {
+            bottom: 3px;
+            right: 3px;
+        }
+
+        .flower-center {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #e9b44c;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .stem {
+            width: 3px;
+            height: 30px;
+            background: #7cb342;
+        }
+
+        .stem-short {
+            height: 20px;
+        }
+
+        .title-ribbon {
+            position: relative;
+            z-index: 10;
+            background-color: #e9b44c;
+            padding: 15px 50px;
+            margin-bottom: -20px;
+            clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+        }
+
+        .title-ribbon h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: 32px;
+            color: white;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        /* Content area */
+        .content-area {
+            padding: 40px 30px 30px 30px;
+        }
+
+        /* Info row */
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+
+        .info-field {
+            flex: 1;
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .info-input {
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid #999;
+            background: transparent;
+            font-size: 16px;
+            font-family: 'Inter', sans-serif;
+            text-align: center;
+            padding: 5px;
+            outline: none;
+        }
+
+        .info-input:focus {
+            border-bottom-color: #6b8e4e;
+            background: #f5f5e8;
+        }
+
+        /* Section title */
+        .section-title {
+            text-align: center;
+            font-size: 20px;
+            color: #555;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        /* Ingredients grid */
+        .ingredients-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 30px;
+            margin-bottom: 30px;
+        }
+
+        .ingredient-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ingredient-bullet {
+            width: 18px;
+            height: 18px;
+            border: 2px dashed #aaa;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .ingredient-input {
+            flex: 1;
+            border: none;
+            border-bottom: 1px solid #999;
+            background: transparent;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            padding: 5px 0;
+            outline: none;
+            min-width: 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .ingredient-input:focus {
+            border-bottom-color: #6b8e4e;
+            background: #f5f5e8;
+        }
+
+        /* Instructions */
+        .instructions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .instruction-input {
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid #999;
+            background: transparent;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            padding: 8px 0;
+            outline: none;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .instruction-input:focus {
+            border-bottom-color: #6b8e4e;
+            background: #f5f5e8;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 12px;
+        }
+
+        /* Focus highlight for voice */
+        .voice-active-field {
+            background: #e8f5e9 !important;
+            border-bottom-color: #6b8e4e !important;
+        }
+
+        @media print {
+
+            .controls,
+            .voice-status {
+                display: none !important;
+            }
+
+            body {
+                padding: 0;
+                background: white;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .info-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .ingredients-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .title-ribbon {
+                padding: 12px 30px;
+            }
+
+            .title-ribbon h1 {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="controls">
+        <button class="btn btn-voice" id="voiceBtn" onclick="toggleVoice()">
+            <span id="voiceBtnText">Iniciar Dictado</span>
+        </button>
+        <button class="btn btn-download" onclick="toggleDownloadOptions()">
+            Descargar
+        </button>
+        <button class="btn btn-clear" onclick="clearAll()">
+            Limpiar Todo
+        </button>
+        <div class="download-options" id="downloadOptions">
+            <button class="download-option-btn" onclick="downloadAs('pdf')">Descargar PDF</button>
+            <button class="download-option-btn" onclick="downloadAs('png')">Descargar PNG</button>
+        </div>
+    </div>
+
+    <div class="voice-status" id="voiceStatus">
+        <div class="voice-indicator">
+            <div class="voice-dot"></div>
+            <span>Escuchando...</span>
+        </div>
+        <div class="active-field-info" id="activeFieldInfo">Haz clic en un campo y empieza a hablar</div>
+    </div>
+
+    <div class="recipe-card" id="recipeCard">
+        <div class="header-banner">
+            <div class="flowers-container">
+                <div class="flower-group">
+                    <div class="flower">
+                        <div class="flower-head">
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="flower-center"></div>
+                        </div>
+                        <div class="stem"></div>
+                    </div>
+                    <div class="flower">
+                        <div class="flower-head">
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="flower-center"></div>
+                        </div>
+                        <div class="stem stem-short"></div>
+                    </div>
+                    <div class="flower">
+                        <div class="flower-head">
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="flower-center"></div>
+                        </div>
+                        <div class="stem"></div>
+                    </div>
+                </div>
+                <div class="flower-group">
+                    <div class="flower">
+                        <div class="flower-head">
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="flower-center"></div>
+                        </div>
+                        <div class="stem stem-short"></div>
+                    </div>
+                    <div class="flower">
+                        <div class="flower-head">
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="flower-center"></div>
+                        </div>
+                        <div class="stem"></div>
+                    </div>
+                    <div class="flower">
+                        <div class="flower-head">
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="petal"></div>
+                            <div class="flower-center"></div>
+                        </div>
+                        <div class="stem stem-short"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="title-ribbon">
+                <h1>recetas</h1>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div class="info-row">
+                <div class="info-field">
+                    <div class="info-label">plato</div>
+                    <input type="text" class="info-input" id="dishName" placeholder="" data-voice-field="dish">
+                </div>
+                <div class="info-field">
+                    <div class="info-label">tiempo de preparacion</div>
+                    <input type="text" class="info-input" id="prepTime" placeholder="" data-voice-field="time">
+                </div>
+                <div class="info-field">
+                    <div class="info-label">porciones</div>
+                    <input type="number" class="info-input" id="servings" placeholder="" data-voice-field="servings">
+                </div>
+            </div>
+
+            <div class="section-title">ingredientes</div>
+            <div class="ingredients-grid" id="ingredientsContainer">
+                <!-- Generated by JS -->
+            </div>
+
+            <div class="section-title">instrucciones</div>
+            <div class="instructions-container" id="instructionsContainer">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <div class="footer">
+            Mi Recetario
+        </div>
+    </div>
+
+    <script>
+        // Generate ingredient lines
+        function generateIngredientLines(container, count) {
+            for (let i = 0; i < count; i++) {
+                const line = document.createElement('div');
+                line.className = 'ingredient-line';
+                line.innerHTML = `
+                    <div class="ingredient-bullet"></div>
+                    <input type="text" class="ingredient-input" data-voice-field="ingredients" data-line-index="${i}">
+                `;
+                container.appendChild(line);
+            }
+        }
+
+        // Generate instruction lines
+        function generateInstructionLines(container, count) {
+            for (let i = 0; i < count; i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'instruction-input';
+                input.dataset.voiceField = 'instructions';
+                input.dataset.lineIndex = i;
+                container.appendChild(input);
+            }
+        }
+
+        generateIngredientLines(document.getElementById('ingredientsContainer'), 14);
+        generateInstructionLines(document.getElementById('instructionsContainer'), 10);
+
+        // Voice Recognition
+        let recognition = null;
+        let isRecording = false;
+        let activeInput = null;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'es-ES';
+
+            recognition.onresult = function (event) {
+                if (!activeInput) return;
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        const transcript = event.results[i][0].transcript.trim();
+
+                        // Append text to current input
+                        if (activeInput.value) {
+                            activeInput.value += ' ' + transcript;
+                        } else {
+                            activeInput.value = transcript;
+                        }
+
+                        // Keep focus on the input
+                        activeInput.focus();
+                    }
+                }
+            };
+
+            recognition.onerror = function (event) {
+                console.error('Speech recognition error:', event.error);
+                if (event.error !== 'no-speech') {
+                    stopVoice();
+                }
+            };
+
+            recognition.onend = function () {
+                if (isRecording) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error('Error restarting recognition:', e);
+                    }
+                }
+            };
+        }
+
+        function toggleVoice() {
+            if (!recognition) {
+                alert('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.');
+                return;
+            }
+
+            if (isRecording) {
+                stopVoice();
+            } else {
+                startVoice();
+            }
+        }
+
+        function startVoice() {
+            isRecording = true;
+
+            // If no input is focused, focus the first one
+            if (!activeInput) {
+                activeInput = document.getElementById('dishName');
+                activeInput.focus();
+            }
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error('Error starting recognition:', e);
+            }
+
+            document.getElementById('voiceBtn').classList.add('recording');
+            document.getElementById('voiceBtnText').textContent = 'Detener Dictado';
+            document.getElementById('voiceStatus').classList.add('active');
+            updateActiveFieldDisplay();
+        }
+
+        function stopVoice() {
+            isRecording = false;
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.error('Error stopping recognition:', e);
+                }
+            }
+            document.getElementById('voiceBtn').classList.remove('recording');
+            document.getElementById('voiceBtnText').textContent = 'Iniciar Dictado';
+            document.getElementById('voiceStatus').classList.remove('active');
+
+            // Remove highlight from active input
+            if (activeInput) {
+                activeInput.classList.remove('voice-active-field');
+            }
+        }
+
+        function updateActiveFieldDisplay() {
+            if (!activeInput) return;
+
+            const fieldNames = {
+                'dish': 'Nombre del plato',
+                'time': 'Tiempo de preparacion',
+                'servings': 'Porciones',
+                'ingredients': 'Ingredientes',
+                'instructions': 'Instrucciones'
+            };
+
+            const field = activeInput.dataset.voiceField;
+            const lineIndex = activeInput.dataset.lineIndex;
+            let displayText = fieldNames[field] || 'Campo';
+
+            if (lineIndex !== undefined) {
+                displayText += ` (linea ${parseInt(lineIndex) + 1})`;
+            }
+
+            document.getElementById('activeFieldInfo').textContent = 'Dictando en: ' + displayText;
+        }
+
+        // Track focused input without losing focus when clicking voice button
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', function () {
+                // Remove highlight from previous
+                if (activeInput && activeInput !== this) {
+                    activeInput.classList.remove('voice-active-field');
+                }
+
+                activeInput = this;
+
+                // Add highlight if recording
+                if (isRecording) {
+                    this.classList.add('voice-active-field');
+                    updateActiveFieldDisplay();
+                }
+            });
+        });
+
+        // Prevent voice button from stealing focus
+        document.getElementById('voiceBtn').addEventListener('mousedown', function (e) {
+            e.preventDefault();
+        });
+
+        // Download options
+        function toggleDownloadOptions() {
+            const options = document.getElementById('downloadOptions');
+            options.classList.toggle('active');
+        }
+
+        function downloadAs(format) {
+            const element = document.getElementById('recipeCard');
+            const dishName = document.getElementById('dishName').value || 'mi-receta';
+            const filename = dishName.replace(/\s+/g, '-').toLowerCase();
+
+            // Hide download options
+            document.getElementById('downloadOptions').classList.remove('active');
+
+            if (format === 'pdf') {
+                const opt = {
+                    margin: 10,
+                    filename: filename + '.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                html2pdf().set(opt).from(element).save();
+            } else if (format === 'png') {
+                html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#faf8f3'
+                }).then(function (canvas) {
+                    const link = document.createElement('a');
+                    link.download = filename + '.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            }
+        }
+
+        // Clear all
+        function clearAll() {
+            if (confirm('Estas seguro de que quieres borrar todo?')) {
+                document.querySelectorAll('input').forEach(input => {
+                    input.value = '';
+                });
+            }
+        }
+
+        // Close download options when clicking outside
+        document.addEventListener('click', function (e) {
+            const downloadBtn = document.querySelector('.btn-download');
+            const downloadOptions = document.getElementById('downloadOptions');
+
+            if (!downloadBtn.contains(e.target) && !downloadOptions.contains(e.target)) {
+                downloadOptions.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+
+</html>
